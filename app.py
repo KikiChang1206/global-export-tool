@@ -111,8 +111,8 @@ if uploaded_file:
 
                 global_font = Font(name='Calibri', size=12, bold=True)
                 
-                # 【正確的底層樣式修改語法】
-                for style in wb.named_styles:
+                # 【本次修復點】：加上底線，正確讀取 NamedStyle 物件！
+                for style in wb._named_styles:
                     if style.name == 'Normal':
                         style.font = global_font
 
@@ -248,7 +248,7 @@ if uploaded_file:
                 output = BytesIO()
                 wb.save(output)
                 st.balloons()
-                st.success("✅ 全球 Packing 轉換成功！(當機問題已修正，欄寬與換行已套用)")
+                st.success("✅ 全球 Packing 轉換成功！(當機問題已修正，欄寬與換行已完美套用)")
                 st.download_button(
                     label="📥 下載精確排版 Packing (.xlsx)",
                     data=output.getvalue(),

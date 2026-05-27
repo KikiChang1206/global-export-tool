@@ -5,7 +5,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side, Alignment
 import math
 
-# 1. 網頁基本設定
+# 1. 網頁基本設定 (維持黑底高質感風格)
 st.set_page_config(page_title="全球 Packing 轉換器", layout="centered")
 
 st.markdown("""
@@ -18,11 +18,11 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown('<p class="big-title">🌍 全球 Packing 轉換器 (終極排版版)</p>', unsafe_allow_html=True)
+st.markdown('<p class="big-title">🌍 全球 Packing 轉換器 (Calibri 自訂版)</p>', unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader("請上傳您的原始 Packing 檔案 (.xls)", type=['xls', 'xlsx'])
 
-# 材積判別邏輯
+# 材積自動判別區間邏輯
 def get_dimensions(pcs):
     try:
         val = int(float(pcs))
@@ -36,7 +36,7 @@ def get_dimensions(pcs):
 if uploaded_file:
     if st.button("🚀 執行智能規格轉換", use_container_width=True):
         try:
-            with st.spinner("正在執行精準排版、劃格線與字體設定..."):
+            with st.spinner("正在依照全新自訂規格進行排版與轉換..."):
                 engine = 'xlrd' if uploaded_file.name.lower().endswith('.xls') else 'openpyxl'
                 df = pd.read_excel(uploaded_file, header=None, dtype=str).fillna('')
 
@@ -50,7 +50,7 @@ if uploaded_file:
                         break
                     
                     desc_zh = str(df.iloc[idx, 2]).strip()
-                    # 剔除 SHIPFEE
+                    # 剔除 SHIPFEE 運費
                     if "SHIPFEE" in desc_zh.upper():
                         continue
                     
@@ -60,7 +60,7 @@ if uploaded_file:
                 processed_groups = []
                 current_group = []
 
-                for row in items[1:]: # [1:] 跳過第12行標題
+                for row in items[1:]: # 跳過原本第12行的舊標題
                     sku = str(row[0]).strip()
                     if sku != "":
                         if current_group:
@@ -106,41 +106,43 @@ if uploaded_file:
                         
                         final_output_rows.append([out_sku, desc, out_qty, out_net, out_gross, out_meas])
 
-                # --- D. 建立全新的 Excel 檔案寫入資料 ---
+                # --- D. 建立全新的 Excel 檔案並配置樣式 ---
                 wb = Workbook()
                 ws = wb.active
                 ws.title = "Processed_Packing"
 
-                # 統一字型：Arial, 12號, 粗體
-                global_font = Font(name='Arial', size=12, bold=True)
+                # 全新字體規格：Calibri, 12號, 粗體
+                global_font = Font(name='Calibri', size=12, bold=True)
                 
-                # 格線設定 (細實線)
+                # 表格格線設定 (細實線)
                 thin_border = Border(left=Side(style='thin'), 
                                      right=Side(style='thin'), 
                                      top=Side(style='thin'), 
                                      bottom=Side(style='thin'))
 
-                # 寫入表頭 (無格線)
+                # 1. 寫入上方表頭 (1~11行)
                 for r_idx, r_data in enumerate(header_data, 1):
-                    # 設定預設列高 14.5，第7行 60.3
-                    ws.row_dimensions[r_idx].height = 60.3 if r_idx == 7 else 14.5
-                    
+                    ws.row_dimensions[r_idx].height = 15 # 預設列高 15
                     for c_idx, val in enumerate(r_data, 1):
                         if c_idx <= 8:
                             cell = ws.cell(row=r_idx, column=c_idx, value=val)
                             cell.font = global_font
                             cell.alignment = Alignment(vertical='center')
 
-                # 寫入第 12 行標題 (有格線)
-                ws.row_dimensions[12].height = 14.5
+                # 2. 寫入第 12 行全新標題
+                ws.row_dimensions[12].height = 15
                 headers_row12 = ["SKU", "Description_of_Goods_(zh)", "Qty", "Net_Weight_(KG)", "Gross_Weight_(KG)", "Measurement_(cm)"]
                 for c_idx, val in enumerate(headers_row12, 1):
                     cell = ws.cell(row=12, column=c_idx, value=val)
                     cell.font = global_font
                     cell.border = thin_border
-                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                    # A12~C12 置左，D12~F12 置中
+                    if c_idx <= 3:
+                        cell.alignment = Alignment(horizontal='left', vertical='center')
+                    else:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
 
-                # 寫入整理好的商品資料 (動態列高 + 格線)
+                # 3. 寫入商品資料列 (13行開始)
                 start_row = 13
                 for r_idx, row_data in enumerate(final_output_rows, start_row):
                     max_lines = 1
@@ -150,32 +152,38 @@ if uploaded_file:
                         cell.font = global_font
                         cell.border = thin_border
                         
-                        # B欄 (品名) 自動換行處理
-                        if c_idx == 2 and val != "":
-                            cell.alignment = Alignment(wrap_text=True, vertical='center', horizontal='left')
-                            text_str = str(val)
-                            
-                            # 估算行數 (欄寬37，12號粗體，約可容納16個中文字)
-                            chars_per_line = 16 
-                            lines_by_length = math.ceil(len(text_str) / chars_per_line)
-                            lines_by_enter = text_str.count('\n') + 1
-                            max_lines = max(max_lines, lines_by_length, lines_by_enter)
-                        else:
-                            if c_idx in [3, 4, 5] and val != "":
-                                try:
-                                    cell.value = float(val)
-                                    cell.number_format = '0.00' if c_idx in [4, 5] else '0'
-                                    cell.alignment = Alignment(horizontal='right', vertical='center')
-                                except: pass
+                        # A~C欄 置左 (品名B欄開啟自動換行與動態列高計算)
+                        if c_idx <= 3:
+                            if c_idx == 2 and val != "":
+                                cell.alignment = Alignment(wrap_text=True, vertical='center', horizontal='left')
+                                text_str = str(val)
+                                # Calibri 12號粗體在欄寬37.09下，約可穩當容納 15 個中文字
+                                chars_per_line = 15 
+                                lines_by_length = math.ceil(len(text_str) / chars_per_line)
+                                lines_by_enter = text_str.count('\n') + 1
+                                max_lines = max(max_lines, lines_by_length, lines_by_enter)
                             else:
                                 cell.alignment = Alignment(horizontal='left', vertical='center')
+                                if c_idx == 3 and val != "":
+                                    try:
+                                        cell.value = float(val)
+                                        cell.number_format = '0'
+                                    except: pass
+                        # D~F欄 置中
+                        else:
+                            cell.alignment = Alignment(horizontal='center', vertical='center')
+                            if val != "" and c_idx in [4, 5]:
+                                try:
+                                    cell.value = float(val)
+                                    cell.number_format = '0.00'
+                                except: pass
 
-                    # 動態設定列高 (單行14.5，多行則等比例放大，微調15點避免太擠)
-                    ws.row_dimensions[r_idx].height = max(14.5, max_lines * 15)
+                    # 動態調整列高：最少 15，多行時依比例安全撐大
+                    ws.row_dimensions[r_idx].height = max(15, max_lines * 16.5)
 
-                # 寫入最底部的總計
+                # 4. 寫入最底部的總計列
                 total_row_idx = start_row + len(final_output_rows)
-                ws.row_dimensions[total_row_idx].height = 14.5
+                ws.row_dimensions[total_row_idx].height = 15
                 qty_display = int(total_qty_sum) if total_qty_sum.is_integer() else round(total_qty_sum, 2)
                 
                 total_data = [f"總箱數:{sku_count}箱", "", qty_display, total_net_sum, total_gross_sum, ""]
@@ -184,22 +192,32 @@ if uploaded_file:
                     cell.font = global_font
                     cell.border = thin_border
                     
-                    if c_idx in [3, 4, 5]:
-                        cell.alignment = Alignment(horizontal='right', vertical='center')
-                        if isinstance(val, (int, float)):
-                            cell.number_format = '0.00' if c_idx in [4, 5] else '0'
-                    else:
+                    # 遵循 A~C置左、D~F置中
+                    if c_idx <= 3:
                         cell.alignment = Alignment(horizontal='left', vertical='center')
+                        if c_idx == 3 and isinstance(val, (int, float)):
+                            cell.value = float(val)
+                            cell.number_format = '0'
+                    else:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                        if val != "" and c_idx in [4, 5]:
+                            try:
+                                cell.value = float(val)
+                                cell.number_format = '0.00'
+                            except: pass
 
-                # --- E. 完美復原上方表頭合併儲存格 ---
+                # --- E. 完美配置指定之合併儲存格與對齊 ---
                 merge_rules = [
+                    # 合併置中
                     ('A1:F1', 'center'), ('A2:F2', 'center'), ('A4:F4', 'center'),
-                    ('A3:D3', 'left'), ('E3:F3', 'left'),
-                    ('A5:D5', 'left'), ('E5:F5', 'left'),
+                    # 合併至右 (依據前版靠左排版)
+                    ('A3:C3', 'left'), ('D3:F3', 'left'),
+                    ('A5:C5', 'left'), ('D5:F5', 'left'),
                     ('A6:F6', 'left'),
-                    ('A7:D7', 'left'), ('E7:F7', 'left'), 
-                    ('A8:D8', 'left'), ('E8:F8', 'left'), 
-                    ('A10:D10', 'left'), ('E10:F10', 'left')
+                    ('A7:C7', 'left'), ('D7:F7', 'left'), 
+                    ('A8:C8', 'left'), ('D8:F8', 'left'), 
+                    ('A9:B9', 'left'), ('C9:E9', 'left'), 
+                    ('A10:C10', 'left'), ('D10:F10', 'left')
                 ]
                 
                 for m_range, align in merge_rules:
@@ -207,21 +225,22 @@ if uploaded_file:
                         ws.merge_cells(m_range)
                         top_left = m_range.split(':')[0]
                         ws[top_left].alignment = Alignment(horizontal=align, vertical='center')
-                    except: pass # 防止合併範圍超出目前 A~F 欄報錯
+                    except: pass 
 
                 # --- F. 設定您指定的精確欄寬 ---
                 col_widths = {'A': 18.82, 'B': 37.09, 'C': 3.91, 'D': 15.64, 'E': 17.18, 'F': 17.55}
                 for col, width in col_widths.items():
                     ws.column_dimensions[col].width = width
 
+                # 輸出
                 output = BytesIO()
                 wb.save(output)
                 st.balloons()
-                st.success("✅ 全球 Packing 轉換與排版完成！(字體12粗體、完美格線、動態列高)")
+                st.success("✅ 全球 Packing 轉換成功！已完全套用 Calibri 12號粗體與精確對齊。")
                 st.download_button(
-                    label="📥 下載排版修正後的 Packing (.xlsx)",
+                    label="📥 下載全新自訂排版 Packing (.xlsx)",
                     data=output.getvalue(),
-                    file_name="Global_Packing_Perfect.xlsx",
+                    file_name="Global_Packing_Calibri_Custom.xlsx",
                     use_container_width=True
                 )
 

@@ -109,9 +109,12 @@ if uploaded_file:
                 ws = wb.active
                 ws.title = "Processed_Packing"
 
-                # 【關鍵修正】：強制修改 Excel 的預設底層字體，這樣欄寬才會 100% 精確！
                 global_font = Font(name='Calibri', size=12, bold=True)
-                wb.styles['Normal'].font = global_font
+                
+                # 【正確的底層樣式修改語法】
+                for style in wb.named_styles:
+                    if style.name == 'Normal':
+                        style.font = global_font
 
                 thin_border = Border(left=Side(style='thin', color='000000'), 
                                      right=Side(style='thin', color='000000'), 
@@ -132,13 +135,11 @@ if uploaded_file:
                         if len(row_vals) >= 3: ws.cell(row=9, column=6, value=row_vals[2])
 
                 # D7~F7 與 A8~C8 的動態列高計算 (防止文字被擋住)
-                # D7 (第7行第4欄) 的寬度大約是 50
                 d7_val = str(ws.cell(row=7, column=4).value or "")
                 if d7_val:
                     lines_d7 = math.ceil(len(d7_val) / 25) + d7_val.count('\n')
                     ws.row_dimensions[7].height = max(15, lines_d7 * 16.5)
 
-                # A8 (第8行第1欄) 的寬度大約是 60
                 a8_val = str(ws.cell(row=8, column=1).value or "")
                 if a8_val:
                     lines_a8 = math.ceil(len(a8_val) / 30) + a8_val.count('\n')
@@ -188,8 +189,8 @@ if uploaded_file:
                     ('A3:C3', 'left'), ('D3:F3', 'left'),
                     ('A5:C5', 'left'), ('D5:F5', 'left'),
                     ('A6:F6', 'left'),
-                    ('A7:C7', 'left'), ('D7:F7', 'left'), # D7~F7 稍後加自動換行
-                    ('A8:C8', 'left'), ('D8:F8', 'left'), # A8~C8 稍後加自動換行
+                    ('A7:C7', 'left'), ('D7:F7', 'left'),
+                    ('A8:C8', 'left'), ('D8:F8', 'left'),
                     ('A9:B9', 'left'), ('C9:E9', 'left'), 
                     ('A10:C10', 'left'), ('D10:F10', 'left')
                 ]
@@ -238,7 +239,7 @@ if uploaded_file:
                     for c in range(1, 7):
                         ws.cell(row=r, column=c).font = global_font
 
-                # --- F. 【最關鍵】在最後強制寫入精準欄寬 ---
+                # --- F. 設定精準自訂欄寬 ---
                 col_widths = {'A': 18.82, 'B': 37.09, 'C': 3.91, 'D': 15.64, 'E': 17.18, 'F': 17.55}
                 for col, width in col_widths.items():
                     ws.column_dimensions[col].width = width
@@ -247,7 +248,7 @@ if uploaded_file:
                 output = BytesIO()
                 wb.save(output)
                 st.balloons()
-                st.success("✅ 全球 Packing 轉換成功！欄寬已完美鎖定、D7與A8自動換行設定完畢。")
+                st.success("✅ 全球 Packing 轉換成功！(當機問題已修正，欄寬與換行已套用)")
                 st.download_button(
                     label="📥 下載精確排版 Packing (.xlsx)",
                     data=output.getvalue(),

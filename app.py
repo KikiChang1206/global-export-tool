@@ -221,7 +221,7 @@ if uploaded_file:
                         cell.font = global_font
 
                 # 設定精確自訂欄寬
-                col_widths = {'A': 18.82, 'B': 37.09, 'C': 3.91, 'D': 15.64, 'E': 17.18, 'F': 17.55}
+                col_widths = {'A': 19.82, 'B': 37.09, 'C': 3.91, 'D': 16.64, 'E': 18.18, 'F': 18.55}
                 for col, width in col_widths.items():
                     ws.column_dimensions[col].width = width
 

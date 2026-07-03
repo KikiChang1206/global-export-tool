@@ -35,15 +35,16 @@ def get_dimensions(pcs):
 
 # ── 主轉換函式 ────────────────────────────────────────────────
 def convert_packing(uploaded_file):
-    # 讀取「貼上系統packing」頁籤
+    # 自動偵測頁籤名稱（相容 ItemData 與 貼上系統packing）
     engine = 'xlrd' if uploaded_file.name.lower().endswith('.xls') else 'openpyxl'
-    df = pd.read_excel(
-        uploaded_file,
-        sheet_name='貼上系統packing',
-        header=None,
-        dtype=str,
-        engine=engine
-    ).fillna('')
+    xl = pd.ExcelFile(uploaded_file, engine=engine)
+    if 'ItemData' in xl.sheet_names:
+        sheet = 'ItemData'
+    elif '貼上系統packing' in xl.sheet_names:
+        sheet = '貼上系統packing'
+    else:
+        sheet = xl.sheet_names[0]
+    df = xl.parse(sheet, header=None, dtype=str).fillna('')
 
     # --- A. 表頭（row index 0~9，對應 Excel 第1~10行）---
     # 來源欄位：A=col0, D=col3, E=col4, G=col6

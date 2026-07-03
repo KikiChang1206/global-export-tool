@@ -132,7 +132,7 @@ def convert_packing(uploaded_file):
     thin_border = Border(left=thin_s, right=thin_s, top=thin_s, bottom=thin_s)
 
     # 欄寬
-    for col, w in {'A':18.82,'B':37.09,'C':3.91,'D':15.64,'E':17.18,'F':17.55}.items():
+    for col, w in {'A':23.1,'B':39.5,'C':4.8,'D':20.3,'E':20.3,'F':22.4}.items():
         ws.column_dimensions[col].width = w
 
     # --- E. 寫入表頭 ---

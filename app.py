@@ -36,12 +36,13 @@ def get_dimensions(pcs):
 # ── 主轉換函式 ────────────────────────────────────────────────
 def convert_packing(uploaded_file):
     # 讀取「貼上系統packing」頁籤
+    engine = 'xlrd' if uploaded_file.name.lower().endswith('.xls') else 'openpyxl'
     df = pd.read_excel(
         uploaded_file,
         sheet_name='貼上系統packing',
         header=None,
         dtype=str,
-        engine='openpyxl'
+        engine=engine
     ).fillna('')
 
     # --- A. 表頭（row index 0~9，對應 Excel 第1~10行）---

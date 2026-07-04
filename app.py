@@ -218,13 +218,21 @@ def convert_packing(uploaded_file):
 
     for i, row_data in enumerate(final_rows):
         r = 13 + i
-        desc  = str(row_data[1]) if row_data[1] else ''
-        lines = max(1, math.ceil(len(desc) / 18) if desc else 1)
+        # 計算各欄需要的行數（用像素估算，Calibri 12pt bold）
+        def px_lines(text, col_width):
+            if not text: return 1
+            col_px = col_width * 7.0
+            text_px = sum(15 if ord(c) > 127 else 8 for c in str(text))
+            return max(1, math.ceil(text_px / col_px))
+        lines = max(
+            px_lines(row_data[0], 18.82),  # A: SKU
+            px_lines(row_data[1], 37.09),  # B: 品名
+        )
         ws.row_dimensions[r].height = max(15.5, lines * 16.5)
         for c, val in enumerate(row_data, 1):
             cell = ws.cell(row=r, column=c, value=val)
             cell.font = bold12; cell.border = thin_border
-            if c == 2:
+            if c in [1, 2]:
                 cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
             elif c <= 3:
                 cell.alignment = Alignment(horizontal='left', vertical='center')
@@ -308,13 +316,22 @@ def convert_invoice(uploaded_file):
 
     for i, row_data in enumerate(final_rows):
         r = 13 + i
-        desc  = str(row_data[1])
-        lines = max(1, math.ceil(len(desc) / 16) if desc else 1)
+        # 計算各欄需要的行數（用像素估算，Calibri 12pt bold）
+        def px_lines(text, col_width):
+            if not text: return 1
+            col_px = col_width * 7.0
+            text_px = sum(15 if ord(c) > 127 else 8 for c in str(text))
+            return max(1, math.ceil(text_px / col_px))
+        lines = max(
+            px_lines(row_data[0], 19.09),  # A: SKU
+            px_lines(row_data[1], 35.64),  # B: 品名
+            px_lines(row_data[2], 19.36),  # C: Brand
+        )
         ws.row_dimensions[r].height = max(15.5, lines * 16.5)
         for c, val in enumerate(row_data, 1):
             cell = ws.cell(row=r, column=c, value=val)
             cell.font = bold12; cell.border = thin_border
-            if c == 2:
+            if c in [1, 2, 3]:
                 cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
             elif c <= 4:
                 cell.alignment = Alignment(horizontal='left', vertical='center')

@@ -206,7 +206,7 @@ def convert_packing(uploaded_file):
     thin_s      = Side(style='thin', color='000000')
     thin_border = Border(left=thin_s, right=thin_s, top=thin_s, bottom=thin_s)
 
-    for col, w in {'A':18.82,'B':37.09,'C':3.91,'D':15.64,'E':17.18,'F':17.18}.items():
+    for col, w in {'A':22.9,'B':37.09,'C':6.1,'D':20.5,'E':22.9,'F':21.7}.items():
         ws.column_dimensions[col].width = w
 
     write_header(ws, h, bold12, 6)
@@ -224,15 +224,12 @@ def convert_packing(uploaded_file):
             col_px = col_width * 7.0
             text_px = sum(15 if ord(c) > 127 else 8 for c in str(text))
             return max(1, math.ceil(text_px / col_px))
-        lines = max(
-            px_lines(row_data[0], 18.82),  # A: SKU
-            px_lines(row_data[1], 37.09),  # B: 品名
-        )
+        lines = px_lines(row_data[1], 37.09)  # B: 品名決定列高
         ws.row_dimensions[r].height = max(15.5, lines * 16.5)
         for c, val in enumerate(row_data, 1):
             cell = ws.cell(row=r, column=c, value=val)
             cell.font = bold12; cell.border = thin_border
-            if c in [1, 2]:
+            if c == 2:
                 cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
             elif c <= 3:
                 cell.alignment = Alignment(horizontal='left', vertical='center')
@@ -304,7 +301,7 @@ def convert_invoice(uploaded_file):
     thin_s      = Side(style='thin', color='000000')
     thin_border = Border(left=thin_s, right=thin_s, top=thin_s, bottom=thin_s)
 
-    for col, w in {'A':19.09,'B':35.64,'C':19.36,'D':5.64,'E':9.36,'F':9.36,'G':17.09}.items():
+    for col, w in {'A':22.9,'B':35.64,'C':24.5,'D':9.7,'E':7.5,'F':14.5,'G':17.09}.items():
         ws.column_dimensions[col].width = w
 
     write_header(ws, h, bold12, 7)
@@ -322,16 +319,12 @@ def convert_invoice(uploaded_file):
             col_px = col_width * 7.0
             text_px = sum(15 if ord(c) > 127 else 8 for c in str(text))
             return max(1, math.ceil(text_px / col_px))
-        lines = max(
-            px_lines(row_data[0], 19.09),  # A: SKU
-            px_lines(row_data[1], 35.64),  # B: 品名
-            px_lines(row_data[2], 19.36),  # C: Brand
-        )
+        lines = px_lines(row_data[1], 35.64)  # B: 品名決定列高
         ws.row_dimensions[r].height = max(15.5, lines * 16.5)
         for c, val in enumerate(row_data, 1):
             cell = ws.cell(row=r, column=c, value=val)
             cell.font = bold12; cell.border = thin_border
-            if c in [1, 2, 3]:
+            if c == 2:
                 cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
             elif c <= 4:
                 cell.alignment = Alignment(horizontal='left', vertical='center')

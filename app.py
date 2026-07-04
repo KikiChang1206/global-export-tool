@@ -309,7 +309,7 @@ def convert_invoice(uploaded_file):
     for i, row_data in enumerate(final_rows):
         r = 13 + i
         desc  = str(row_data[1])
-        lines = max(1, math.ceil(len(desc) / 22) if desc else 1)
+        lines = max(1, math.ceil(len(desc) / 16) if desc else 1)
         ws.row_dimensions[r].height = max(15.5, lines * 16.5)
         for c, val in enumerate(row_data, 1):
             cell = ws.cell(row=r, column=c, value=val)

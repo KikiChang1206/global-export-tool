@@ -10,10 +10,7 @@ import math
 st.set_page_config(page_title="✈️ 全球出口轉換工具", layout="centered")
 st.markdown("""
 <style>
-/* 背景漸層 */
 .stApp { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); }
-
-/* 標題 */
 .main-title {
     font-size: 32px; font-weight: 900; color: #FFFFFF;
     text-align: center; letter-spacing: 2px;
@@ -24,8 +21,6 @@ st.markdown("""
     font-size: 13px; color: #90caf9; text-align: center;
     letter-spacing: 1px; margin-bottom: 28px;
 }
-
-/* 區塊卡片 */
 .block-card {
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.15);
@@ -38,53 +33,26 @@ st.markdown("""
     font-size: 17px; font-weight: 700; color: #64dfdf;
     margin-bottom: 14px; letter-spacing: 1px;
 }
-
-/* 上傳框 */
 .stFileUploader section {
     background: rgba(255,255,255,0.08) !important;
     border: 1.5px dashed rgba(100,223,223,0.5) !important;
     border-radius: 10px !important;
-    color: #FFFFFF !important;
 }
 [data-testid="stFileUploadDropzone"] p { color: #b0bec5 !important; }
-
-/* 執行按鈕 */
 div.stButton > button {
     background: linear-gradient(90deg, #00b4d8, #0077b6) !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    border-radius: 10px !important;
-    height: 48px;
-    font-size: 15px;
-    font-weight: 700;
-    width: 100%;
-    letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(0,180,216,0.4);
-    transition: all 0.2s;
+    color: #FFFFFF !important; border: none !important;
+    border-radius: 10px !important; height: 48px;
+    font-size: 15px; font-weight: 700; width: 100%;
+    letter-spacing: 1px; box-shadow: 0 4px 15px rgba(0,180,216,0.4);
 }
-div.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,180,216,0.6);
-}
-
-/* 下載按鈕 */
 [data-testid="stDownloadButton"] button {
     background: linear-gradient(90deg, #06d6a0, #048a81) !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    border-radius: 10px !important;
-    height: 48px;
-    font-size: 15px;
-    font-weight: 700;
-    width: 100%;
+    color: #FFFFFF !important; border: none !important;
+    border-radius: 10px !important; height: 48px;
+    font-size: 15px; font-weight: 700; width: 100%;
     box-shadow: 0 4px 15px rgba(6,214,160,0.4);
 }
-
-/* 成功/錯誤訊息 */
-.stSuccess { border-radius: 10px !important; }
-.stAlert   { border-radius: 10px !important; }
-
-/* 隱藏 Streamlit 預設頁尾 */
 footer { visibility: hidden; }
 label, .stMarkdown p { color: #cfd8dc !important; }
 </style>
@@ -134,53 +102,50 @@ def extract_header(df):
     h['r10_E'] = str(df.iloc[9, 4]).strip()
     return h
 
-# ── 表頭寫入共用函式 ──────────────────────────────────────────
+# ── 表頭寫入 + 合併 + 列高 共用函式 ──────────────────────────
 def write_header(ws, h, bold12, total_cols):
-    last = chr(64 + total_cols)  # e.g. 'F' or 'G'
+    last = chr(64 + total_cols)
 
     def sc(row, col, val, wrap=False, ha='left'):
         cell = ws.cell(row=row, column=col, value=val)
         cell.font = bold12
         cell.alignment = Alignment(horizontal=ha, vertical='center', wrap_text=wrap)
 
-    sc(1, 1, h['r1_A'], ha='center')
-    sc(2, 1, h['r2_A'], ha='center')
-    sc(3, 1, h['r3_A']); sc(3, 4, h['r3_E'])
-    sc(4, 1, h['r4_A'], ha='center')
-    sc(5, 1, h['r5_A']); sc(5, 4, h['r5_E'])
-    sc(6, 1, h['r6_A'])
-    sc(7, 1, h['r7_A']); sc(7, 4, h['r7_E'], wrap=True)
-    sc(8, 1, h['r8_A'], wrap=True); sc(8, 4, h['r8_E'])
-    sc(9, 1, h['r9_A']); sc(9, 3, h['r9_D']); sc(9, 6, h['r9_G'])
+    sc(1,  1, h['r1_A'],  ha='center')
+    sc(2,  1, h['r2_A'],  ha='center')
+    sc(3,  1, h['r3_A']);  sc(3,  4, h['r3_E'])
+    sc(4,  1, h['r4_A'],  ha='center')
+    sc(5,  1, h['r5_A']);  sc(5,  4, h['r5_E'])
+    sc(6,  1, h['r6_A'])
+    sc(7,  1, h['r7_A']);  sc(7,  4, h['r7_E'], wrap=True)
+    sc(8,  1, h['r8_A'],  wrap=True); sc(8, 4, h['r8_E'])
+    sc(9,  1, h['r9_A']);  sc(9,  3, h['r9_D']); sc(9, 6, h['r9_G'])
     sc(10, 1, h['r10_A']); sc(10, 4, h['r10_E'])
 
-    # 合併
-    merges = [
+    for rng, ha in [
         (f'A1:{last}1','center'), (f'A2:{last}2','center'), (f'A4:{last}4','center'),
-        ('A3:C3','left'), (f'D3:{last}3','left'),
-        ('A5:C5','left'), (f'D5:{last}5','left'),
+        ('A3:C3','left'),  (f'D3:{last}3','left'),
+        ('A5:C5','left'),  (f'D5:{last}5','left'),
         (f'A6:{last}6','left'),
-        ('A7:C7','left'), (f'D7:{last}7','left'),
-        ('A8:C8','left'), (f'D8:{last}8','left'),
-        ('A9:B9','left'), ('C9:E9','left'),
-        ('A10:C10','left'), (f'D10:{last}10','left'),
-    ]
-    for rng, ha in merges:
+        ('A7:C7','left'),  (f'D7:{last}7','left'),
+        ('A8:C8','left'),  (f'D8:{last}8','left'),
+        ('A9:B9','left'),  ('C9:E9','left'),
+        ('A10:C10','left'),(f'D10:{last}10','left'),
+    ]:
         ws.merge_cells(rng)
         tl = rng.split(':')[0]
         ew = ws[tl].alignment.wrap_text
         ws[tl].alignment = Alignment(horizontal=ha, vertical='center', wrap_text=ew)
 
-    # 列高
-    for r in range(1, 12):
-        ws.row_dimensions[r].height = 14.5
-    r7l = max(1, math.ceil(len(h['r7_E'].replace('\n','')) / 22) + h['r7_E'].count('\n'))
-    ws.row_dimensions[7].height = max(60.3, r7l * 16.5)
-    r8l = max(1, math.ceil(len(h['r8_A'].replace('\n','')) / 28) + h['r8_A'].count('\n'))
-    ws.row_dimensions[8].height = max(14.5, r8l * 16.5)
+    # 列高：1~6=15.5，7=77.7，8~12=15.5
+    for r in range(1, 13):
+        if r == 7:
+            ws.row_dimensions[r].height = 77.7
+        else:
+            ws.row_dimensions[r].height = 15.5
 
     # 字型補套
-    for r in range(1, 12):
+    for r in range(1, 13):
         for c in range(1, total_cols + 1):
             ws.cell(r, c).font = bold12
 
@@ -231,8 +196,9 @@ def convert_packing(uploaded_file):
             desc = desc.strip()
             final_rows.append([
                 r[0] if i == 0 else "", desc, r[3],
-                net_w if i == 0 else "", gross_w if i == 0 else "",
-                meas  if i == 0 else "",
+                net_w   if i == 0 else "",
+                gross_w if i == 0 else "",
+                meas    if i == 0 else "",
             ])
 
     wb = Workbook(); ws = wb.active; ws.title = "Packing"
@@ -240,12 +206,11 @@ def convert_packing(uploaded_file):
     thin_s      = Side(style='thin', color='000000')
     thin_border = Border(left=thin_s, right=thin_s, top=thin_s, bottom=thin_s)
 
-    for col, w in {'A':23.1,'B':39.5,'C':4.8,'D':20.3,'E':20.3,'F':22.4}.items():
+    for col, w in {'A':18.82,'B':37.09,'C':3.91,'D':15.64,'E':17.18,'F':17.18}.items():
         ws.column_dimensions[col].width = w
 
     write_header(ws, h, bold12, 6)
 
-    ws.row_dimensions[12].height = 14.5
     for c, val in enumerate(["SKU","Description_of_Goods_(zh)","Qty","Net_Weight_(KG)","Gross_Weight_(KG)","Measurement_(cm)"], 1):
         cell = ws.cell(row=12, column=c, value=val)
         cell.font = bold12; cell.border = thin_border
@@ -255,7 +220,7 @@ def convert_packing(uploaded_file):
         r = 13 + i
         desc  = str(row_data[1]) if row_data[1] else ''
         lines = max(1, math.ceil(len(desc) / 18) if desc else 1)
-        ws.row_dimensions[r].height = max(14.5, lines * 16.5)
+        ws.row_dimensions[r].height = max(15.5, lines * 16.5)
         for c, val in enumerate(row_data, 1):
             cell = ws.cell(row=r, column=c, value=val)
             cell.font = bold12; cell.border = thin_border
@@ -272,7 +237,7 @@ def convert_packing(uploaded_file):
                 except: pass
 
     total_row = 13 + len(final_rows)
-    ws.row_dimensions[total_row].height = 14.5
+    ws.row_dimensions[total_row].height = 15.5
     qty_disp = int(total_qty) if total_qty == int(total_qty) else round(total_qty, 2)
     for c, val in enumerate([f"總箱數:{sku_count}箱","", qty_disp, round(total_net,2), round(total_gross,2),""], 1):
         cell = ws.cell(row=total_row, column=c, value=val)
@@ -299,9 +264,9 @@ def convert_invoice(uploaded_file):
         for kw in ['【新品】', '★', '【歡樂智多星推薦】']:
             desc_zh = desc_zh.replace(kw, '')
         desc_zh = desc_zh.strip()
-        try: qty = float(str(df.iloc[idx, 5]).strip())
+        try: qty    = float(str(df.iloc[idx, 5]).strip())
         except: qty = 0.0
-        try: amount = float(str(df.iloc[idx, 8]).strip())
+        try: amount    = float(str(df.iloc[idx, 8]).strip())
         except: amount = 0.0
         origin = str(df.iloc[idx, 4]).strip()
         raw_items.append({'sku': col0, 'desc': desc_zh, 'origin': origin, 'qty': qty, 'amount': amount})
@@ -317,13 +282,11 @@ def convert_invoice(uploaded_file):
     final_rows = []
     total_qty = total_amount = 0.0
     for sku, g in groups.items():
-        qty    = g['qty']
-        amount = g['amount']
-        # 小數點第一位四捨五入
-        unit_price = round(amount / qty, 1) if qty > 0 else 0
-        unit_price = math.floor(unit_price + 0.5)  # 四捨五入到整數
+        qty          = g['qty']
+        amount       = g['amount']
+        unit_price   = math.floor((amount / qty) + 0.5) if qty > 0 else 0
         final_amount = qty * unit_price
-        brand = 'Shalom希樂' if '益生菌' in g['desc'] else 'Jealousness婕洛妮絲'
+        brand        = 'Shalom希樂' if '益生菌' in g['desc'] else 'Jealousness婕洛妮絲'
         total_qty    += qty
         total_amount += final_amount
         final_rows.append([sku, g['desc'], brand, g['origin'], qty, unit_price, final_amount])
@@ -338,7 +301,6 @@ def convert_invoice(uploaded_file):
 
     write_header(ws, h, bold12, 7)
 
-    ws.row_dimensions[12].height = 14.5
     for c, val in enumerate(['SKU','Description_of_Goods_(zh)','Brand','Origin','Qty','Unit_Price','Amount'], 1):
         cell = ws.cell(row=12, column=c, value=val)
         cell.font = bold12; cell.border = thin_border
@@ -348,7 +310,7 @@ def convert_invoice(uploaded_file):
         r = 13 + i
         desc  = str(row_data[1])
         lines = max(1, math.ceil(len(desc) / 22) if desc else 1)
-        ws.row_dimensions[r].height = max(14.5, lines * 16.5)
+        ws.row_dimensions[r].height = max(15.5, lines * 16.5)
         for c, val in enumerate(row_data, 1):
             cell = ws.cell(row=r, column=c, value=val)
             cell.font = bold12; cell.border = thin_border
@@ -365,7 +327,7 @@ def convert_invoice(uploaded_file):
                 except: pass
 
     total_row = 13 + len(final_rows)
-    ws.row_dimensions[total_row].height = 14.5
+    ws.row_dimensions[total_row].height = 15.5
     qty_disp = int(total_qty) if total_qty == int(total_qty) else round(total_qty, 2)
     for c, val in enumerate([f'Total:{len(final_rows)}項','','','', qty_disp,'', round(total_amount,2)], 1):
         cell = ws.cell(row=total_row, column=c, value=val)
@@ -377,54 +339,76 @@ def convert_invoice(uploaded_file):
     return output.getvalue()
 
 # ── Streamlit UI ──────────────────────────────────────────────
-col1, col2 = st.columns(2)
+st.markdown('<div class="block-card"><div class="card-title">📂 上傳檔案（可同時選取兩個）</div>', unsafe_allow_html=True)
+uploaded_files = st.file_uploader(
+    "系統會自動判斷 MergePackingList / MergeInvoice，一次選兩個也沒問題",
+    type=['xls', 'xlsx'],
+    accept_multiple_files=True
+)
+st.markdown('</div>', unsafe_allow_html=True)
 
-with col1:
-    st.markdown('<div class="block-card"><div class="card-title">📦 Packing List</div>', unsafe_allow_html=True)
-    uploaded_packing = st.file_uploader("上傳原始 Packing 檔案", type=['xls','xlsx'], key="packing")
-    if st.button("🚀 執行 Packing 轉換", key="btn_packing"):
-        if uploaded_packing:
+if st.button("🚀 一鍵執行轉換", use_container_width=True):
+    if not uploaded_files:
+        st.warning("⚠️ 請先上傳檔案")
+    else:
+        packing_file = None
+        invoice_file = None
+        unrecognized = []
+
+        for f in uploaded_files:
+            name = f.name.upper()
+            if 'MERGEPACKINGLIST' in name:
+                packing_file = f
+            elif 'MERGEINVOICE' in name:
+                invoice_file = f
+            else:
+                unrecognized.append(f.name)
+
+        if unrecognized:
+            st.warning(f"⚠️ 無法判斷類型（檔名不含 MergePackingList 或 MergeInvoice）：{', '.join(unrecognized)}")
+
+        if packing_file:
             try:
-                with st.spinner("整理中..."):
-                    result_p = convert_packing(uploaded_packing)
+                with st.spinner("📦 Packing 處理中..."):
+                    result_p = convert_packing(packing_file)
                 st.session_state['packing_result'] = result_p
-                st.success("✅ Packing 完成！")
+                st.session_state['packing_name']   = packing_file.name.replace('.xls','').replace('.xlsx','') + '_output.xlsx'
+                st.success("✅ Packing 轉換完成！")
             except Exception as e:
-                st.error(f"錯誤：{e}")
-        else:
-            st.warning("⚠️ 請先上傳 Packing 檔案")
-    if st.session_state.get('packing_result'):
-        st.download_button(
-            label="📥 下載 Packing (.xlsx)",
-            data=st.session_state['packing_result'],
-            file_name="Packing_output.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key="dl_packing"
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
+                st.error(f"Packing 錯誤：{e}")
 
-with col2:
-    st.markdown('<div class="block-card"><div class="card-title">🧾 Invoice</div>', unsafe_allow_html=True)
-    uploaded_invoice = st.file_uploader("上傳原始 Invoice 檔案", type=['xls','xlsx'], key="invoice")
-    if st.button("🚀 執行 Invoice 轉換", key="btn_invoice"):
-        if uploaded_invoice:
+        if invoice_file:
             try:
-                with st.spinner("合併計算中..."):
-                    result_i = convert_invoice(uploaded_invoice)
+                with st.spinner("🧾 Invoice 處理中..."):
+                    result_i = convert_invoice(invoice_file)
                 st.session_state['invoice_result'] = result_i
-                st.success("✅ Invoice 完成！")
+                st.session_state['invoice_name']   = invoice_file.name.replace('.xls','').replace('.xlsx','') + '_output.xlsx'
+                st.success("✅ Invoice 轉換完成！")
             except Exception as e:
-                st.error(f"錯誤：{e}")
-        else:
-            st.warning("⚠️ 請先上傳 Invoice 檔案")
-    if st.session_state.get('invoice_result'):
-        st.download_button(
-            label="📥 下載 Invoice (.xlsx)",
-            data=st.session_state['invoice_result'],
-            file_name="Invoice_output.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key="dl_invoice"
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
+                st.error(f"Invoice 錯誤：{e}")
+
+# 下載區：session_state 有資料就顯示，不會消失
+if st.session_state.get('packing_result') or st.session_state.get('invoice_result'):
+    st.markdown("---")
+    st.markdown('<div class="card-title">📥 下載區</div>', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.session_state.get('packing_result'):
+            st.download_button(
+                label="📦 下載 Packing",
+                data=st.session_state['packing_result'],
+                file_name=st.session_state.get('packing_name', 'Packing_output.xlsx'),
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key="dl_packing"
+            )
+    with col2:
+        if st.session_state.get('invoice_result'):
+            st.download_button(
+                label="🧾 下載 Invoice",
+                data=st.session_state['invoice_result'],
+                file_name=st.session_state.get('invoice_name', 'Invoice_output.xlsx'),
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key="dl_invoice"
+            )

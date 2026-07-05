@@ -475,6 +475,7 @@ if st.session_state.get('check_passed'):
                     st.session_state['invoice_result'] = result_i
                     st.session_state['invoice_name']   = invoice_file.name.replace('.xls','').replace('.xlsx','') + '_output.xlsx'
                     st.success("✅ Invoice 轉換完成！")
+                    st.snow()  # 雪花動畫
                 except Exception as e:
                     st.error(f"Invoice 錯誤：{e}")
 

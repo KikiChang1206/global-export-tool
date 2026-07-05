@@ -351,7 +351,7 @@ def convert_invoice(uploaded_file):
     return output.getvalue()
 
 # ── Streamlit UI ──────────────────────────────────────────────
-st.markdown('<div class="block-card"><div class="card-title">📂 請上傳 INVOICE 及 PACKING</div>', unsafe_allow_html=True)
+st.markdown('<div class="block-card"><div class="card-title">📂 請上傳 INVOICE、PACKING、翔丰資料</div>', unsafe_allow_html=True)
 uploaded_files = st.file_uploader(
     "請同時選取三個檔案上傳（Invoice、Packing、核對清單）",
     type=['xls', 'xlsx'],
@@ -381,6 +381,24 @@ if uploaded_files:
             st.warning("⚠️ 請確認已上傳核對清單及 Packing 檔案")
         else:
             try:
+                # ── 檔名核對：確認 Invoice 和 Packing 是同一批 ──
+                def extract_batch_id(filename):
+                    # 去掉副檔名和 _MergeInvoice / _MergePackingList 後綴，取前段批次編號
+                    name = filename.rsplit('.', 1)[0]  # 去副檔名
+                    for suffix in ['_MergePackingList', '_MergeInvoice']:
+                        name = name.replace(suffix, '')
+                    return name  # e.g. MY_GMJI0020069257001
+
+                if invoice_file and packing_file:
+                    inv_id  = extract_batch_id(invoice_file.name)
+                    pack_id = extract_batch_id(packing_file.name)
+                    if inv_id != pack_id:
+                        st.error(f"❌ 檔案批次不符！請確認上傳的是同一批出貨：")
+                        st.markdown(f"　• Invoice：`{invoice_file.name}` → `{inv_id}`")
+                        st.markdown(f"　• Packing：`{packing_file.name}` → `{pack_id}`")
+                        st.session_state['check_passed'] = False
+                        st.stop()
+
                 engine_c = 'xlrd' if checklist_file.name.lower().endswith('.xls') else 'openpyxl'
                 df_check = pd.read_excel(checklist_file, dtype=str, engine=engine_c).fillna('')
                 check_dict = {}

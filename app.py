@@ -353,53 +353,114 @@ def convert_invoice(uploaded_file):
 # ── Streamlit UI ──────────────────────────────────────────────
 st.markdown('<div class="block-card"><div class="card-title">📂 請上傳 INVOICE 及 PACKING</div>', unsafe_allow_html=True)
 uploaded_files = st.file_uploader(
-    "請同時選取兩個檔案上傳",
+    "請同時選取三個檔案上傳（Invoice、Packing、核對清單）",
     type=['xls', 'xlsx'],
     accept_multiple_files=True
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
-if st.button("🚀 一鍵執行轉換", use_container_width=True):
-    if not uploaded_files:
-        st.warning("⚠️ 請先上傳檔案")
-    else:
-        packing_file = None
-        invoice_file = None
-        unrecognized = []
+# 自動分類檔案
+packing_file   = None
+invoice_file   = None
+checklist_file = None
 
-        for f in uploaded_files:
-            name = f.name.upper()
-            if 'MERGEPACKINGLIST' in name:
-                packing_file = f
-            elif 'MERGEINVOICE' in name:
-                invoice_file = f
-            else:
-                unrecognized.append(f.name)
+if uploaded_files:
+    for f in uploaded_files:
+        name = f.name.upper()
+        if 'MERGEPACKINGLIST' in name:
+            packing_file = f
+        elif 'MERGEINVOICE' in name:
+            invoice_file = f
+        else:
+            checklist_file = f  # 其他的當作核對清單
 
-        if unrecognized:
-            st.warning(f"⚠️ 無法判斷類型（檔名不含 MergePackingList 或 MergeInvoice）：{', '.join(unrecognized)}")
-
-        if packing_file:
+# ── 第一步：核對按鈕 ─────────────────────────────────────────
+if uploaded_files:
+    if st.button("🔍 執行核對", use_container_width=True, key="btn_check"):
+        if not checklist_file or not packing_file:
+            st.warning("⚠️ 請確認已上傳核對清單及 Packing 檔案")
+        else:
             try:
-                with st.spinner("📦 Packing 處理中..."):
-                    result_p = convert_packing(packing_file)
-                st.session_state['packing_result'] = result_p
-                st.session_state['packing_name']   = packing_file.name.replace('.xls','').replace('.xlsx','') + '_output.xlsx'
-                st.success("✅ Packing 轉換完成！")
-            except Exception as e:
-                st.error(f"Packing 錯誤：{e}")
+                engine_c = 'xlrd' if checklist_file.name.lower().endswith('.xls') else 'openpyxl'
+                df_check = pd.read_excel(checklist_file, dtype=str, engine=engine_c).fillna('')
+                check_dict = {}
+                for _, row in df_check.iterrows():
+                    sku = str(row['配送編號']).strip()
+                    try: pcs = float(str(row['出貨PCS']).strip())
+                    except: pcs = 0.0
+                    if sku: check_dict[sku] = check_dict.get(sku, 0.0) + pcs
 
-        if invoice_file:
-            try:
-                with st.spinner("🧾 Invoice 處理中..."):
-                    result_i = convert_invoice(invoice_file)
-                st.session_state['invoice_result'] = result_i
-                st.session_state['invoice_name']   = invoice_file.name.replace('.xls','').replace('.xlsx','') + '_output.xlsx'
-                st.success("✅ Invoice 轉換完成！")
-            except Exception as e:
-                st.error(f"Invoice 錯誤：{e}")
+                df_pack = read_df(packing_file)
+                pack_dict = {}
+                current_sku = None
+                for idx in range(12, len(df_pack)):
+                    col0 = str(df_pack.iloc[idx, 0]).strip()
+                    if '總箱數' in col0 or 'TOTAL' in col0.upper(): break
+                    if col0: current_sku = col0
+                    if current_sku:
+                        try: qty = float(str(df_pack.iloc[idx, 3]).strip())
+                        except: qty = 0.0
+                        pack_dict[current_sku] = pack_dict.get(current_sku, 0.0) + qty
 
-# 下載區：session_state 有資料就顯示，不會消失
+                missing  = sorted(set(check_dict) - set(pack_dict))
+                extra    = sorted(set(pack_dict)  - set(check_dict))
+                mismatch = [(s, int(check_dict[s]), int(pack_dict[s]))
+                            for s in set(check_dict) & set(pack_dict)
+                            if abs(check_dict[s] - pack_dict[s]) > 0.01]
+
+                all_ok = not missing and not extra and not mismatch
+                st.session_state['check_passed'] = all_ok
+
+                if all_ok:
+                    st.success(f"✅ 單號全部核對正確！共 {len(check_dict)} 筆，PCS 完全吻合。")
+                else:
+                    st.error("❌ 核對發現差異，請確認以下項目：")
+                    if missing:
+                        st.markdown("**🔴 核對清單有，但 Packing 缺少的單號：**")
+                        for s in missing:
+                            st.markdown(f"　• `{s}`　（應有 {int(check_dict[s])} PCS）")
+                    if extra:
+                        st.markdown("**🟡 Packing 有，但核對清單沒有的單號：**")
+                        for s in extra:
+                            st.markdown(f"　• `{s}`　（Packing 有 {int(pack_dict[s])} PCS）")
+                    if mismatch:
+                        st.markdown("**🟠 單號存在但 PCS 數量不符：**")
+                        for sku, c_pcs, p_qty in mismatch:
+                            diff = p_qty - c_pcs
+                            diff_str = f"+{diff}" if diff > 0 else str(diff)
+                            st.markdown(f"　• `{sku}`　核對清單 {c_pcs} PCS ／ Packing {p_qty} PCS　（差異 {diff_str}）")
+
+            except Exception as e:
+                st.error(f"核對發生錯誤：{e}")
+
+# ── 第二步：核對通過才顯示轉換按鈕 ─────────────────────────
+if st.session_state.get('check_passed'):
+    st.markdown("---")
+    if st.button("🚀 執行轉換", use_container_width=True, key="btn_convert"):
+        if not packing_file and not invoice_file:
+            st.warning("⚠️ 請上傳 Packing 或 Invoice 檔案")
+        else:
+            if packing_file:
+                try:
+                    with st.spinner("📦 Packing 處理中..."):
+                        result_p = convert_packing(packing_file)
+                    st.session_state['packing_result'] = result_p
+                    st.session_state['packing_name']   = packing_file.name.replace('.xls','').replace('.xlsx','') + '_output.xlsx'
+                    st.success("✅ Packing 轉換完成！")
+                except Exception as e:
+                    st.error(f"Packing 錯誤：{e}")
+
+            if invoice_file:
+                try:
+                    with st.spinner("🧾 Invoice 處理中..."):
+                        result_i = convert_invoice(invoice_file)
+                    st.session_state['invoice_result'] = result_i
+                    st.session_state['invoice_name']   = invoice_file.name.replace('.xls','').replace('.xlsx','') + '_output.xlsx'
+                    st.success("✅ Invoice 轉換完成！")
+                except Exception as e:
+                    st.error(f"Invoice 錯誤：{e}")
+
+# ── 下載區 ───────────────────────────────────────────────────
 if st.session_state.get('packing_result') or st.session_state.get('invoice_result'):
     st.markdown("---")
     st.markdown('<div class="card-title">📥 下載結果</div>', unsafe_allow_html=True)
@@ -424,88 +485,3 @@ if st.session_state.get('packing_result') or st.session_state.get('invoice_resul
                 use_container_width=True,
                 key="dl_invoice"
             )
-
-# ── 核對區塊 ──────────────────────────────────────────────────
-st.markdown("---")
-st.markdown('<div class="block-card"><div class="card-title">🔍 單號 & PCS 核對</div>', unsafe_allow_html=True)
-
-col_a, col_b = st.columns(2)
-with col_a:
-    uploaded_checklist = st.file_uploader("上傳核對清單（好馬吉匯出）", type=['xls','xlsx'], key="checklist")
-with col_b:
-    uploaded_packing_check = st.file_uploader("上傳原始 Packing 檔案", type=['xls','xlsx'], key="packing_check")
-
-if st.button("🔍 執行核對", use_container_width=True, key="btn_check"):
-    if not uploaded_checklist or not uploaded_packing_check:
-        st.warning("⚠️ 請同時上傳核對清單和原始 Packing 檔案")
-    else:
-        try:
-            # 讀核對清單
-            engine_c = 'xlrd' if uploaded_checklist.name.lower().endswith('.xls') else 'openpyxl'
-            df_check = pd.read_excel(uploaded_checklist, dtype=str, engine=engine_c).fillna('')
-            # 自動偵測配送編號和PCS欄位
-            col_sku  = '配送編號'
-            col_pcs  = '出貨PCS'
-            check_dict = {}  # sku -> pcs
-            for _, row in df_check.iterrows():
-                sku = str(row[col_sku]).strip()
-                try: pcs = float(str(row[col_pcs]).strip())
-                except: pcs = 0.0
-                if sku:
-                    check_dict[sku] = check_dict.get(sku, 0.0) + pcs
-
-            # 讀原始 Packing 的 SKU + Qty（同SKU群組底下所有行加總）
-            df_pack = read_df(uploaded_packing_check)
-            pack_dict = {}  # sku -> qty
-            current_sku = None
-            for idx in range(12, len(df_pack)):
-                col0 = str(df_pack.iloc[idx, 0]).strip()
-                if '總箱數' in col0 or 'TOTAL' in col0.upper():
-                    break
-                if col0:
-                    current_sku = col0
-                if current_sku:
-                    try: qty = float(str(df_pack.iloc[idx, 3]).strip())
-                    except: qty = 0.0
-                    pack_dict[current_sku] = pack_dict.get(current_sku, 0.0) + qty
-
-            check_skus = set(check_dict.keys())
-            pack_skus  = set(pack_dict.keys())
-
-            missing  = sorted(check_skus - pack_skus)   # 核對清單有，Packing 沒有
-            extra    = sorted(pack_skus  - check_skus)  # Packing 有，核對清單沒有
-            pcs_mismatch = []
-            for sku in check_skus & pack_skus:
-                c_pcs = check_dict[sku]
-                p_qty = pack_dict[sku]
-                if abs(c_pcs - p_qty) > 0.01:
-                    pcs_mismatch.append((sku, int(c_pcs), int(p_qty)))
-
-            all_ok = not missing and not extra and not pcs_mismatch
-
-            if all_ok:
-                st.success(f"✅ 單號全部核對正確！共 {len(check_skus)} 筆，PCS 完全吻合。")
-            else:
-                st.error("❌ 核對發現差異，請確認以下項目：")
-
-                if missing:
-                    st.markdown("**🔴 核對清單有，但 Packing 缺少的單號：**")
-                    for s in missing:
-                        st.markdown(f"　• `{s}`　（應有 {int(check_dict[s])} PCS）")
-
-                if extra:
-                    st.markdown("**🟡 Packing 有，但核對清單沒有的單號：**")
-                    for s in extra:
-                        st.markdown(f"　• `{s}`　（Packing 有 {int(pack_dict[s])} PCS）")
-
-                if pcs_mismatch:
-                    st.markdown("**🟠 單號存在但 PCS 數量不符：**")
-                    for sku, c_pcs, p_qty in pcs_mismatch:
-                        diff = p_qty - c_pcs
-                        diff_str = f"+{diff}" if diff > 0 else str(diff)
-                        st.markdown(f"　• `{sku}`　核對清單 {c_pcs} PCS ／ Packing {p_qty} PCS　（差異 {diff_str}）")
-
-        except Exception as e:
-            st.error(f"核對發生錯誤：{e}")
-
-st.markdown('</div>', unsafe_allow_html=True)

@@ -220,8 +220,9 @@ def convert_packing(uploaded_file):
         r = 13 + i
         # 計算各欄需要的行數（用像素估算，Calibri 12pt bold）
         def px_lines(text, col_width):
+            # 加 0.92 安全邊距，避免剛好塞滿時 Excel 仍換行
             if not text: return 1
-            col_px = col_width * 7.0
+            col_px = col_width * 7.0 * 0.92
             text_px = sum(17 if ord(c) > 127 else 9 for c in str(text))
             return max(1, math.ceil(text_px / col_px))
         lines = px_lines(row_data[1], 37.09)  # B: 品名決定列高
@@ -315,8 +316,9 @@ def convert_invoice(uploaded_file):
         r = 13 + i
         # 計算各欄需要的行數（用像素估算，Calibri 12pt bold）
         def px_lines(text, col_width):
+            # 加 0.92 安全邊距，避免剛好塞滿時 Excel 仍換行
             if not text: return 1
-            col_px = col_width * 7.0
+            col_px = col_width * 7.0 * 0.92
             text_px = sum(17 if ord(c) > 127 else 9 for c in str(text))
             return max(1, math.ceil(text_px / col_px))
         lines = px_lines(row_data[1], 35.64)  # B: 品名決定列高

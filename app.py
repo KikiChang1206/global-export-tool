@@ -351,9 +351,9 @@ def convert_invoice(uploaded_file):
     return output.getvalue()
 
 # ── Streamlit UI ──────────────────────────────────────────────
-st.markdown('<div class="block-card"><div class="card-title">📂 上傳檔案（可同時選取兩個）</div>', unsafe_allow_html=True)
+st.markdown('<div class="block-card"><div class="card-title">📂 請上傳 INVOICE 及 PACKING</div>', unsafe_allow_html=True)
 uploaded_files = st.file_uploader(
-    "系統會自動判斷 MergePackingList / MergeInvoice，一次選兩個也沒問題",
+    "請同時選取兩個檔案上傳",
     type=['xls', 'xlsx'],
     accept_multiple_files=True
 )
@@ -402,7 +402,7 @@ if st.button("🚀 一鍵執行轉換", use_container_width=True):
 # 下載區：session_state 有資料就顯示，不會消失
 if st.session_state.get('packing_result') or st.session_state.get('invoice_result'):
     st.markdown("---")
-    st.markdown('<div class="card-title">📥 下載區</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">📥 下載結果</div>', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         if st.session_state.get('packing_result'):

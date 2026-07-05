@@ -10,7 +10,7 @@ import math
 st.set_page_config(page_title="✈️ 全球出口轉換工具", layout="centered")
 st.markdown("""
 <style>
-.stApp { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); }
+.stApp { background: #000000; }
 .main-title {
     font-size: 32px; font-weight: 900; color: #FFFFFF;
     text-align: center; letter-spacing: 2px;

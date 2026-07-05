@@ -504,3 +504,4 @@ if st.session_state.get('packing_result') or st.session_state.get('invoice_resul
                 use_container_width=True,
                 key="dl_invoice"
             )
+            st.info("⚠️ 請再次核對 Invoice 金額")

@@ -222,7 +222,7 @@ def convert_packing(uploaded_file):
         def px_lines(text, col_width):
             if not text: return 1
             col_px = col_width * 7.0
-            text_px = sum(15 if ord(c) > 127 else 8 for c in str(text))
+            text_px = sum(17 if ord(c) > 127 else 9 for c in str(text))
             return max(1, math.ceil(text_px / col_px))
         lines = px_lines(row_data[1], 37.09)  # B: 品名決定列高
         ws.row_dimensions[r].height = max(15.5, lines * 16.5)
@@ -317,7 +317,7 @@ def convert_invoice(uploaded_file):
         def px_lines(text, col_width):
             if not text: return 1
             col_px = col_width * 7.0
-            text_px = sum(15 if ord(c) > 127 else 8 for c in str(text))
+            text_px = sum(17 if ord(c) > 127 else 9 for c in str(text))
             return max(1, math.ceil(text_px / col_px))
         lines = px_lines(row_data[1], 35.64)  # B: 品名決定列高
         ws.row_dimensions[r].height = max(15.5, lines * 16.5)
